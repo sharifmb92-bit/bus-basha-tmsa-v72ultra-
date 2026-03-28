@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1d23">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Supervisor TMSA v72</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1d23'/><path d='M20,25 h30 v40 h-30 z' fill='%23FF0000'/><path d='M50,25 h30 v40 h-30 z' fill='%23FFD700'/><path d='M49,25 h2 v40 h-2 z' fill='%23fff'/><rect x='25' y='33' width='50' height='14' rx='3' fill='%23222'/><text x='50' y='59' text-anchor='middle' font-family='Arial, sans-serif' font-weight='black' font-size='8' fill='%23333'>TMSA</text></svg>">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    
+    <style>
+        [x-cloak] { display: none !important; }
+        body { background-color: #1a1d23; color: #e2e8f0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card-main { background: #23272e; border-radius: 1.2rem; border: 2px solid #2d333f; overflow: hidden; }
+        .block-hora { background-color: #1e293b; padding: 16px; }
+        input { background: transparent; border: none; color: white; font-weight: 800; outline: none; }
+        input[type="time"] { font-size: 2rem; color: #60a5fa; width: 100%; }
+        input[type="number"] { font-size: 1.8rem; color: #22d3ee; width: 100%; }
+        .label-custom { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-btn { flex: 1; padding: 14px; text-align: center; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; border-bottom: 4px solid transparent; }
+        .nav-active { border-color: #3b82f6; color: #3b82f6; background: #23272e; }
+        .alarm-btn { background-color: #0891b2; border-radius: 10px; padding: 10px; margin-top: 8px; font-size: 12px; font-weight: 900; color: white; width: 100%; text-align: center; cursor: pointer; }
+        .btn-desplegar { background: #1e293b; border: 1px solid #334155; color: #60a5fa; font-weight: 900; font-size: 12px; width: 100%; padding: 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #0891b2; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 900; font-size: 12px; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body x-data="tmsaApp()" x-init="initApp()">
+
+    <div x-show="showToast" x-transition x-text="toastMsg" class="toast" x-cloak></div>
+
+    <nav class="flex bg-[#1a1d23] sticky top-0 z-50 border-b border-white/10">
+        <button @click="view = 'registro'" :class="view === 'registro' ? 'nav-active' : 'text-gray-500'" class="nav-btn">Agenda Diario</button>
+        <button @click="view = 'historial'" :class="view === 'historial' ? 'nav-active' : 'text-gray-500'" class="nav-btn">Resumen Mes</button>
+    </nav>
+
+    <main x-show="view === 'registro'" class="p-4 space-y-6 pb-40">
+        <div class="card-main p-3">
+            <div class="flex justify-between items-center px-2 mb-3 text-xs font-black uppercase">
+                <span class="text-blue-400" x-text="mesNombre + ' ' + año"></span>
+                <div class="flex gap-6">
+                    <button @click="cambiarMes(-1)" class="material-symbols-outlined text-blue-400 scale-125">chevron_left</button>
+                    <button @click="cambiarMes(1)" class="material-symbols-outlined text-blue-400 scale-125">chevron_right</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center">
+                <template x-for="dia in diasCalendario">
+                    <div @click="seleccionarDia(dia.fecha)" class="py-3 text-sm cursor-pointer flex flex-col items-center">
+                         <span :class="[dia.isHoy ? 'bg-white text-black rounded-lg px-2 font-black' : '', dia.fecha === fechaSeleccionada ? 'border-2 border-blue-500 rounded-lg px-2' : '']" x-text="dia.num"></span>
+                         <div class="flex gap-1 mt-1.5 h-1.5">
+                            <template x-if="getTipoDia(dia.fecha)">
+                                <div :class="getTipoDia(dia.fecha).tipo === 'partido' ? 'bg-orange-500' : 'bg-blue-500'" class="w-2.5 h-2.5 rounded-full"></div>
+                            </template>
+                         </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div class="flex card-main p-1.5 bg-[#1a1d23] gap-1">
+            <button @click="form.tipo = 'continuo'; verificarDietas()" :class="form.tipo === 'continuo' ? 'bg-blue-600' : 'text-gray-500'" class="flex-1 py-4 rounded-xl text-xs font-black uppercase">Continuo</button>
+            <button @click="form.tipo = 'partido'; verificarDietas()" :class="form.tipo === 'partido' ? 'bg-orange-600' : 'text-gray-500'" class="flex-1 py-4 rounded-xl text-xs font-black uppercase">Partido</button>
+        </div>
+
+        <section class="card-main">
+            <div class="flex justify-between items-center p-4 bg-black/30">
+                <span class="text-xs font-black text-gray-300 uppercase" x-text="form.tipo === 'partido' ? 'Mañana' : 'Turno'"></span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black text-yellow-500/50 uppercase">Bus:</span>
+                    <input type="text" x-model="form.bus1" @input="saveDraft()" placeholder="00" class="w-16 bg-black/40 rounded-lg px-3 py-1 text-yellow-400 text-right text-lg font-black">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 border-b border-black/20">
+                <div class="block-hora border-r border-black/30">
+                    <label class="label-custom text-blue-300">Entrada</label>
+                    <input type="time" x-model="form.horaE1" @input="verificarDietas(); sugerirAlarma()">
+                    <div x-show="alarmaDisponible" @click="lanzarAlarma()" class="alarm-btn active:scale-95 transition-transform">⏰ ALARMA <span x-text="horaAlarmaStr"></span></div>
+                </div>
+                <div class="block-hora"><label class="label-custom text-red-400">Salida</label><input type="time" x-model="form.horaS1" @input="verificarDietas()"></div>
+            </div>
+            <div class="grid grid-cols-2 bg-[#262c35]">
+                <div class="p-4 border-r border-black/30"><label class="label-custom text-cyan-300">KM INI</label><input type="number" x-model="form.kmI1" @input="calcular()"></div>
+                <div class="p-4"><label class="label-custom text-cyan-300">KM FIN</label><input type="number" x-model="form.kmF1" @input="calcular()"></div>
+            </div>
+        </section>
+
+        <section x-show="form.tipo === 'partido'" class="card-main border-orange-500/30" x-cloak>
+            <div class="flex justify-between items-center p-4 bg-black/30">
+                <span class="text-xs font-black text-orange-400 uppercase">Tarde</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black text-yellow-500/50 uppercase">Bus:</span>
+                    <input type="text" x-model="form.bus2" @input="saveDraft()" placeholder="00" class="w-16 bg-black/40 rounded-lg px-3 py-1 text-yellow-400 text-right text-lg font-black">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 border-b border-black/20">
+                <div class="block-hora border-r border-black/30"><label class="label-custom text-blue-300">Entrada 2</label><input type="time" x-model="form.horaE2" @input="verificarDietas()"></div>
+                <div class="block-hora"><label class="label-custom text-red-400">Salida 2</label><input type="time" x-model="form.horaS2" @input="verificarDietas()"></div>
+            </div>
+            <div class="grid grid-cols-2 bg-[#262c35]">
+                <div class="p-4 border-r border-black/30"><label class="label-custom text-cyan-300">KM INI 2</label><input type="number" x-model="form.kmI2" @input="calcular()"></div>
+                <div class="p-4"><label class="label-custom text-cyan-300">KM FIN 2</label><input type="number" x-model="form.kmF2" @input="calcular()"></div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-2 gap-3">
+            <button @click="form.comida = !form.comida; saveDraft()" :class="form.comida ? 'bg-green-600 border-green-400 shadow-lg' : 'bg-gray-800 border-white/5'" class="py-5 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all">
+                <span class="material-symbols-outlined">restaurant</span>
+                <span class="text-xs font-black uppercase">Comida</span>
+            </button>
+            <button @click="form.cena = !form.cena; saveDraft()" :class="form.cena ? 'bg-green-600 border-green-400 shadow-lg' : 'bg-gray-800 border-white/5'" class="py-5 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all">
+                <span class="material-symbols-outlined">dinner_dining</span>
+                <span class="text-xs font-black uppercase">Cena</span>
+            </button>
+        </div>
+
+        <button @click="guardarJornada()" class="w-full h-20 bg-blue-700 text-white font-black rounded-3xl text-lg shadow-2xl active:scale-95 transition-all uppercase tracking-widest border-b-4 border-blue-900">GUARDAR DÍA</button>
+    </main>
+
+    <main x-show="view === 'historial'" class="p-4 space-y-4 pb-24" x-cloak>
+        <section class="grid grid-cols-2 gap-2 text-center">
+            <div class="card-main p-3 border-l-4 border-yellow-500"><span class="text-[9px] text-yellow-500 font-black uppercase">Horas Totales</span><p class="text-2xl font-black" x-text="stats.horas + 'h'"></p></div>
+            <div class="card-main p-3 border-l-4 border-purple-500"><span class="text-[9px] text-purple-400 font-black uppercase">Nocturnas</span><p class="text-2xl font-black" x-text="stats.nocturnas + 'h'"></p></div>
+            <div class="card-main p-3 border-l-4 border-green-500"><span class="text-[9px] text-green-500 font-black uppercase">Dietas</span><p class="text-2xl font-black" x-text="stats.dietas"></p></div>
+            <div class="card-main p-3 border-l-4 border-cyan-500"><span class="text-[9px] text-cyan-500 font-black uppercase">Total KM</span><p class="text-2xl font-black" x-text="stats.km"></p></div>
+        </section>
+
+        <button onclick="toggleBloque('bloque-lista')" class="btn-desplegar"><span>DETALLE DIARIO / PARTIDOS</span><span class="material-symbols-outlined">expand_more</span></button>
+        <div id="bloque-lista" class="card-main overflow-x-auto" style="display:none">
+            <table class="w-full text-[10px] text-left">
+                <tr class="bg-black/40 text-gray-500 font-black uppercase">
+                    <th class="p-2">Día</th><th>Tipo</th><th>Bus</th><th>Horas</th><th>Noc.</th><th>Dietas</th><th>KM</th><th></th>
+                </tr>
+                <template x-for="item in historyFiltrado" :key="item.fecha">
+                    <tr class="border-b border-white/5">
+                        <td class="p-2 font-bold" x-text="item.fecha.split('-').reverse()[0]"></td>
+                        <td x-text="item.tipo === 'partido' ? '🟠' : '🔵'"></td>
+                        <td class="text-yellow-500 font-bold" x-text="item.bus"></td>
+                        <td class="font-black" x-text="item.hStr"></td>
+                        <td class="text-purple-400" x-text="item.nocRaw.toFixed(1) + 'h'"></td>
+                        <td class="text-green-500 font-bold" x-text="item.dieta"></td>
+                        <td class="text-cyan-400 font-bold" x-text="item.km"></td>
+                        <td class="pr-2"><span @click="borrarFila(item.fecha)" class="material-symbols-outlined text-red-500 text-xs cursor-pointer">delete</span></td>
+                    </tr>
+                </template>
+            </table>
+        </div>
+
+        <div class="pt-4 border-t border-white/10">
+            <h3 class="text-[10px] font-black text-gray-500 uppercase mb-2">Archivo de Meses Anteriores</h3>
+            <button @click="archivarMes()" class="w-full py-4 bg-blue-800 text-white font-black rounded-xl text-[10px] uppercase shadow-lg active:scale-95 transition-all mb-4">Archivar Trabajo del Mes Actual</button>
+            <div class="space-y-2">
+                <template x-for="m in archivo" :key="m.id">
+                    <div class="card-main p-3 flex justify-between items-center text-[10px] border-l-4 border-gray-600">
+                        <div>
+                            <p class="font-black uppercase text-blue-400" x-text="m.nombre"></p>
+                            <p class="text-gray-300 font-bold" x-text="m.horas + 'h | ' + m.nocturnas + 'h noc | ' + m.dietas + ' dietas | ' + m.km + 'km'"></p>
+                        </div>
+                        <button @click="borrarMesArchivado(m.id)" class="text-red-500 material-symbols-outlined bg-red-500/10 p-2 rounded-lg">delete_forever</button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </main>
+
+    <footer x-show="view === 'registro'" class="fixed bottom-0 left-0 w-full p-5 bg-[#1a1d23]/95 backdrop-blur-md border-t border-white/10 flex justify-between items-center z-50">
+        <div><span class="text-[10px] text-gray-400 font-black uppercase font-black">KM HOY</span><p class="text-2xl font-black text-cyan-400" x-text="res.kmTotales"></p></div>
+        <div class="text-right"><span class="text-[10px] text-yellow-500 font-black uppercase font-black">TOTAL JORNADA</span><p class="text-5xl font-black text-white" x-text="res.total"></p></div>
+    </footer>
+
+    <script>
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(() => {}); }
+        function toggleBloque(id) { const el = document.getElementById(id); el.style.display = (el.style.display === 'none') ? 'block' : 'none'; }
+
+        function tmsaApp() {
+            return {
+                view: 'registro', fechaSeleccionada: new Date().toISOString().split('T')[0],
+                form: { tipo: 'continuo', bus1: '', bus2: '', horaE1: '', kmI1: '', horaS1: '', kmF1: '', horaE2: '', kmI2: '', horaS2: '', kmF2: '', comida: false, cena: false },
+                res: { total: '00:00', kmTotales: 0, nocTotales: 0 },
+                history: [], archivo: [], stats: { horas: 0, dietas: 0, nocturnas: 0, km: 0 },
+                mes: new Date().getMonth(), año: new Date().getFullYear(), mesNombre: '', diasCalendario: [],
+                alarmaDisponible: false, horaAlarmaStr: '', 
+                showToast: false, toastMsg: '',
+
+                initApp() {
+                    this.history = JSON.parse(localStorage.getItem('tmsa_db_v72') || '[]');
+                    this.archivo = JSON.parse(localStorage.getItem('tmsa_archivo_v72') || '[]');
+                    this.renderCalendario();
+                    this.cargarHojaDesdeMemoria();
+                    this.sumarTotales();
+                },
+
+                get historyFiltrado() {
+                    const mesSel = `${this.año}-${String(this.mes+1).padStart(2,'0')}`;
+                    return this.history.filter(i => i.fecha.startsWith(mesSel)).sort((a,b) => a.fecha.localeCompare(b.fecha));
+                },
+
+                calcularNocturnidad(hE, hS) {
+                    if(!hE || !hS) return 0;
+                    let inicio = new Date("2000-01-01T" + hE), fin = new Date("2000-01-01T" + hS);
+                    if(fin <= inicio) fin.setDate(fin.getDate() + 1);
+                    let nInicio = new Date("2000-01-01T22:00"), nFin = new Date("2000-01-02T06:00");
+                    let intersectionStart = Math.max(inicio, nInicio), intersectionEnd = Math.min(fin, nFin);
+                    return Math.max(0, (intersectionEnd - intersectionStart) / 3600000);
+                },
+
+                calcular() {
+                    const calcMin = (hE, hS) => {
+                        if(!hE || !hS) return 0;
+                        let d1 = new Date("2000-01-01T" + hE), d2 = new Date("2000-01-01T" + hS);
+                        if(d2 <= d1) d2.setDate(d2.getDate()+1);
+                        return (d2 - d1) / 60000;
+                    };
+                    let totalMin = calcMin(this.form.horaE1, this.form.horaS1);
+                    let noc = this.calcularNocturnidad(this.form.horaE1, this.form.horaS1);
+                    if(this.form.tipo === 'partido') {
+                        totalMin += calcMin(this.form.horaE2, this.form.horaS2);
+                        noc += this.calcularNocturnidad(this.form.horaE2, this.form.horaS2);
+                    }
+                    if (totalMin > 0 && totalMin < 360) totalMin = 360; 
+                    this.res.total = Math.floor(totalMin/60).toString().padStart(2,'0') + ":" + Math.round(totalMin%60).toString().padStart(2,'0');
+                    this.res.kmTotales = (parseFloat(this.form.kmF1 || 0) - parseFloat(this.form.kmI1 || 0)) + (this.form.tipo === 'partido' ? (parseFloat(this.form.kmF2 || 0) - parseFloat(this.form.kmI2 || 0)) : 0);
+                    this.res.nocTotales = noc;
+                    this.saveDraft();
+                },
+
+                verificarDietas() {
+                    this.calcular();
+                    const hE = this.form.horaE1, hS = (this.form.tipo === 'partido') ? this.form.horaS2 : this.form.horaS1;
+                    const hParts = this.res.total.split(':');
+                    const hTotal = parseInt(hParts[0]) + (parseInt(hParts[1])/60);
+                    let d = false;
+                    if (hTotal >= 9 && hS >= "15:00") d = true;
+                    else if (hTotal >= 6 && hTotal < 9 && hS >= "15:30") d = true;
+                    if (hTotal > 9 && hS >= "23:00") d = true;
+                    if (hE >= "13:00" && hS < "23:00") d = false;
+                    this.form.comida = d;
+                    this.saveDraft();
+                },
+
+                sugerirAlarma() {
+                    if (!this.form.horaE1) { this.alarmaDisponible = false; return; }
+                    let [h, m] = this.form.horaE1.split(':').map(Number);
+                    let d = new Date(); d.setHours(h, m); d.setMinutes(d.getMinutes() - 45);
+                    this.horaAlarmaStr = d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0');
+                    this.alarmaDisponible = true;
+                },
+
+                // ARREGLO DE ALARMA Y AVISO
+                lanzarAlarma() {
+                    if (!this.horaAlarmaStr) return;
+                    let [h, m] = this.horaAlarmaStr.split(':');
+                    const intent = `intent://#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${parseInt(h)};i.android.intent.extra.alarm.MINUTES=${parseInt(m)};s.android.intent.extra.alarm.MESSAGE=Inicio%20Bus;b.android.intent.extra.alarm.SKIP_UI=false;end`;
+                    
+                    try {
+                        window.location.href = intent;
+                        // Aviso de confirmación
+                        this.toastMsg = `⏰ Alarma programada: ${h}:${m}`;
+                        this.showToast = true;
+                        setTimeout(() => this.showToast = false, 3000);
+                    } catch (e) {
+                        alert("Usa Chrome en Android para las alarmas.");
+                    }
+                },
+
+                guardarJornada() {
+                    if (!this.form.bus1) return alert("⚠️ ¡FALTA Nº BUS!");
+                    this.history = this.history.filter(i => i.fecha !== this.fechaSeleccionada);
+                    const dietasHoy = (this.form.comida ? 1 : 0) + (this.form.cena ? 1 : 0);
+                    const hParts = this.res.total.split(':');
+                    this.history.push({ 
+                        fecha: this.fechaSeleccionada, 
+                        bus: this.form.bus1, 
+                        hStr: this.res.total,
+                        hRaw: parseInt(hParts[0]) + (parseInt(hParts[1])/60), 
+                        dieta: dietasHoy, 
+                        tipo: this.form.tipo, 
+                        nocRaw: this.res.nocTotales, 
+                        km: this.res.kmTotales
+                    });
+                    localStorage.setItem('tmsa_db_v72', JSON.stringify(this.history));
+                    this.sumarTotales();
+                    alert("✅ Guardado");
+                },
+
+                sumarTotales() {
+                    const mesSel = `${this.año}-${String(this.mes+1).padStart(2,'0')}`;
+                    let h=0, d=0, n=0, k=0;
+                    this.history.forEach(i => { if(i.fecha.startsWith(mesSel)) { h+=i.hRaw; d+=i.dieta; n+=i.nocRaw; k+=i.km; } });
+                    this.stats = { horas: h.toFixed(2), dietas: d, nocturnas: n.toFixed(1), km: k };
+                },
+
+                archivarMes() {
+                    const id = `${this.año}-${this.mes}`;
+                    this.archivo = this.archivo.filter(a => a.id !== id);
+                    this.archivo.unshift({ id, nombre: `${this.mesNombre} ${this.año}`, ...this.stats });
+                    localStorage.setItem('tmsa_archivo_v72', JSON.stringify(this.archivo));
+                    alert("📦 Mes archivado");
+                },
+
+                renderCalendario() {
+                    const days = new Date(this.año, this.mes + 1, 0).getDate();
+                    this.mesNombre = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date(this.año, this.mes));
+                    this.diasCalendario = [];
+                    for(let i=1; i<=days; i++) {
+                        let f = `${this.año}-${String(this.mes+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                        this.diasCalendario.push({ num: i, fecha: f, isHoy: f === new Date().toISOString().split('T')[0] });
+                    }
+                },
+
+                getTipoDia(f) { return this.history.find(i => i.fecha === f); },
+
+                cargarHojaDesdeMemoria() {
+                    const saved = JSON.parse(localStorage.getItem('tmsa_drafts_v72') || '{}');
+                    this.form = saved[this.fechaSeleccionada] || { tipo: 'continuo', bus1: '', bus2: '', horaE1: '', kmI1: '', horaS1: '', kmF1: '', horaE2: '', kmI2: '', horaS2: '', kmF2: '', comida: false, cena: false };
+                    this.calcular();
+                    this.sugerirAlarma();
+                },
+                saveDraft() {
+                    const saved = JSON.parse(localStorage.getItem('tmsa_drafts_v72') || '{}');
+                    saved[this.fechaSeleccionada] = this.form;
+                    localStorage.setItem('tmsa_drafts_v72', JSON.stringify(saved));
+                },
+                seleccionarDia(f) { this.fechaSeleccionada = f; this.cargarHojaDesdeMemoria(); },
+                cambiarMes(v) { this.mes += v; if(this.mes<0){this.mes=11;this.año--} if(this.mes>11){this.mes=0;this.año++} this.renderCalendario(); this.sumarTotales(); },
+                borrarFila(f) { if(confirm("¿Borrar día?")){this.history = this.history.filter(i => i.fecha !== f); localStorage.setItem('tmsa_db_v72', JSON.stringify(this.history)); this.sumarTotales(); }},
+                borrarMesArchivado(id) { if(confirm("¿Borrar este mes archivado?")){this.archivo = this.archivo.filter(a => a.id !== id); localStorage.setItem('tmsa_archivo_v72', JSON.stringify(this.archivo)); }}
+            }
+        }
+    </script>
+</body>
+</html>
