@@ -1,0 +1,18 @@
+{
+  "short_name": "Sup. TMSA",
+  "name": "Supervisor Jornada TMSA",
+  "description": "Registro de jornada y alarmas para conductores de TMSA Menorca.",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjMWExZDIzIi8+PGcgdHJhbnNmb3JtPSJzY2FsZSgxLjIpIHRyYW5zbGF0ZSgtOCwtOCkiPjxwYXRoIGQ9Ik0yMCwyNSBoMzB2NDBoLTMweiIgZmlsbD0iI0ZGMDAwMCIvPjxwYXRoIGQ9Ik01MCwyNSBoMzB2NDBoLTMweiIgZmlsbD0iI0ZGRDUwMCIvPjxwYXRoIGQ9Ik00OSwyNSBoMnY0MGgtMnoiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIyNSIgeT0iMzMiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiMyMjIiLz48dGV4dCB4PSI1MCIgeT0iNTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJsYWNrIiBmb250LXNpemU9IjgiIGZpbGw9IiMzMzMiPlRNU0E8L3RleHQ+PC9nPjwvc3ZnPg==",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1a1d23",
+  "background_color": "#1a1d23"
+}
