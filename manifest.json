@@ -1,0 +1,15 @@
+{
+  "name": "Registro Bus TMSA",
+  "short_name": "Bus TMSA",
+  "start_url": "/bus-basha-tmsa-v72ultra-/",
+  "display": "standalone",
+  "background_color": "#FFD700",
+  "theme_color": "#FFD700",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABNElEQVRYR+2W0Q2DMBBFv7e3s3CytLWwsLQqBBE+4S3kHxHmVwPBIrTTH0CtIhPZoOT6gG/1HAF5kgHQH3iBMKAFgO7AfYX0MLpYy44cQG6o3k0N6F4K0bTK56zkwQZ6iOYgGJ0dx5We9gX4C2Yghn1nLwFu2Cq4wDf8N6wpTGmQzAJZPRAkXMK4D3JUlK88A6Jut1E0VgM6U6V0xQHlVck8U6gqk94B28uQ+ws3C9lQPmI1Tuk5RlS5D4bVvdD2QMGp95/m8N0z8DpJ5iqXhXKc8AAAAASUVORK5CYII=",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}
